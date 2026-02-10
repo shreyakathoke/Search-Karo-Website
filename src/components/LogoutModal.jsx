@@ -1,30 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import "../styles/logout-modal.css";
 
 export default function LogoutModal({
   open,
-  seconds = 3,
   onClose,
   onConfirm,
 }) {
-  const [left, setLeft] = useState(seconds);
-
-  useEffect(() => {
-    if (!open) return;
-
-    setLeft(seconds);
-    const id = setInterval(() => {
-      setLeft((p) => p - 1);
-    }, 1000);
-
-    return () => clearInterval(id);
-  }, [open, seconds]);
-
-  useEffect(() => {
-    if (!open) return;
-    if (left <= 0) onConfirm?.(); // auto logout when timer ends
-  }, [left, open, onConfirm]);
-
   // ESC to close
   useEffect(() => {
     if (!open) return;
@@ -38,20 +19,16 @@ export default function LogoutModal({
   if (!open) return null;
 
   return (
-    <div className="lm-backdrop" role="presentation" onClick={onClose}>
+    <div className="lm-backdrop" onClick={onClose}>
       <div
         className="lm-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="logout-title"
         onClick={(e) => e.stopPropagation()}
       >
-        <button className="lm-close" onClick={onClose} aria-label="Close">
+        <button className="lm-close" onClick={onClose}>
           ×
         </button>
 
-        <div className="lm-icon" aria-hidden="true">
-          {/* simple "logout door" icon */}
+        <div className="lm-icon">
           <svg width="72" height="72" viewBox="0 0 64 64">
             <path
               d="M10 8h22a4 4 0 0 1 4 4v8h-6v-6H16v36h14v-6h6v8a4 4 0 0 1-4 4H10a4 4 0 0 1-4-4V12a4 4 0 0 1 4-4z"
@@ -65,19 +42,19 @@ export default function LogoutModal({
           </svg>
         </div>
 
-        <h2 id="logout-title" className="lm-title">
-          You are Logged Out?
-        </h2>
+        <h2 className="lm-title">Confirm Logout</h2>
 
         <p className="lm-text">
-          You are about to logout in{" "}
-          <span className="lm-count">{Math.max(left, 0)}</span> secs, Do you want
-          to continue?
+          Are you sure you want to logout from your account?
         </p>
 
-        <button className="lm-btn" onClick={onConfirm}>
-          Log Out
-        </button>
+        <div className="lm-actions">
+          
+
+          <button className="lm-btn" onClick={onConfirm}>
+            Log Out
+          </button>
+        </div>
       </div>
     </div>
   );
