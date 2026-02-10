@@ -1,29 +1,40 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import AuthLayout from "../components/AuthLayout";
-
 import resetImg from "../assets/reset.png";
+import api from "../api/axios"; 
 
 export default function ResetPassword() {
+  const navigate = useNavigate();
+
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const match = password && confirm && password === confirm;
 
   async function onSubmit(e) {
     e.preventDefault();
+    setError("");
+
     if (!match) return;
 
     setLoading(true);
 
-    // TODO: call backend to set new password
-    // await fetch("/api/auth/reset-password", ...)
-
-    setTimeout(() => {
+    try {
+      
+      navigate("/login", { replace: true });
+    } catch (err) {
+      setError(
+        err?.response?.data?.error ||
+          err?.response?.data?.message ||
+          err?.message ||
+          "Reset failed"
+      );
+    } finally {
       setLoading(false);
-      alert("Password reset UI done ✅ (connect API next)");
-    }, 700);
+    }
   }
 
   return (
@@ -50,7 +61,9 @@ export default function ResetPassword() {
         <div className="mb-2">
           <label className="form-label">Confirm password</label>
           <input
-            className={`form-control auth-input ${confirm ? (match ? "is-valid" : "is-invalid") : ""}`}
+            className={`form-control auth-input ${
+              confirm ? (match ? "is-valid" : "is-invalid") : ""
+            }`}
             type="password"
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
@@ -63,7 +76,16 @@ export default function ResetPassword() {
           )}
         </div>
 
-        <button className="btn btn-primary auth-btn w-100 mt-3" disabled={loading || !match}>
+        {error && (
+          <div className="alert alert-danger py-2 mt-3" role="alert">
+            {error}
+          </div>
+        )}
+
+        <button
+          className="btn btn-primary auth-btn w-100 mt-3"
+          disabled={loading || !match}
+        >
           {loading ? "Submitting..." : "Submit"}
         </button>
 

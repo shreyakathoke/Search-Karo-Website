@@ -1,12 +1,15 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import AuthLayout from "../components/AuthLayout";
-
 import loginImg from "../assets/login.png";
+import api from "../api/axios";
 
 export default function Login() {
+  const navigate = useNavigate();
+
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   function onChange(e) {
     setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
@@ -15,14 +18,34 @@ export default function Login() {
   async function onSubmit(e) {
     e.preventDefault();
     setLoading(true);
+    setError("");
 
-    // TODO: call your backend API
-    // await fetch("/api/auth/login", ...)
+    try {
+      const res = await api.post("/auth/login", form);
 
-    setTimeout(() => {
+      // ✅ FIXED: backend returns "token"
+      const token = res.data?.token;
+
+      if (!token) {
+        throw new Error("No token returned from backend");
+      }
+
+      // Save JWT
+      localStorage.setItem("token", token);
+
+      // Redirect to dashboard
+      navigate("/dashboard", { replace: true });
+
+    } catch (err) {
+      setError(
+        err?.response?.data?.error ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Login failed"
+      );
+    } finally {
       setLoading(false);
-      alert("Login UI done ✅ (connect API next)");
-    }, 600);
+    }
   }
 
   return (
@@ -33,6 +56,13 @@ export default function Login() {
       imageAlt="Login illustration"
     >
       <form onSubmit={onSubmit} className="auth-form">
+
+        {error && (
+          <div className="alert alert-danger py-2">
+            {error}
+          </div>
+        )}
+
         <div className="mb-3">
           <label className="form-label">Email</label>
           <input
@@ -60,7 +90,7 @@ export default function Login() {
         </div>
 
         <div className="d-flex justify-content-end mb-3">
-          <Link className="auth-link" to="/forgot-password">
+          <Link className="auth-link" to="/forgot">
             Forgot password?
           </Link>
         </div>
@@ -73,7 +103,10 @@ export default function Login() {
           <span>or</span>
         </div>
 
-        <button type="button" className="btn btn-outline-dark w-100 auth-btn-outline">
+        <button
+          type="button"
+          className="btn btn-outline-dark w-100 auth-btn-outline"
+        >
           <i className="bi bi-google me-2"></i>
           Log in with Google
         </button>
@@ -81,6 +114,7 @@ export default function Login() {
         <p className="mt-3 mb-0 text-center auth-hint">
           Don’t have an account? <Link to="/signup">Sign up</Link>
         </p>
+
       </form>
     </AuthLayout>
   );

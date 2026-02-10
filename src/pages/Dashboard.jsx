@@ -122,7 +122,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Bottom Row */}
+      
       <div className="row g-3 mt-1">
         {/* Legal Policy */}
         <div className="col-12 col-xl-5">
@@ -159,7 +159,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Report */}
+        
         <div className="col-12 col-xl-4">
           <div className="card soft-card h-100">
             <CardHeader title="Report" onView={() => navigate("/reports")} />
@@ -179,7 +179,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Rating */}
+        
         <div className="col-12 col-xl-3">
           <div className="card soft-card h-100">
             <CardHeader title="Rating" onView={() => navigate("/rating")} />
@@ -209,7 +209,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Bottom Accent */}
+      
       <div className="bottom-accent mt-4" />
     </div>
   );

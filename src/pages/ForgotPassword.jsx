@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import AuthLayout from "../components/AuthLayout";
-
 import forgotImg from "../assets/forgot.png";
 
 export default function ForgotPassword() {
+  const navigate = useNavigate();
+
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -12,13 +13,17 @@ export default function ForgotPassword() {
     e.preventDefault();
     setLoading(true);
 
-    // TODO: call backend to send OTP / reset link
-    // await fetch("/api/auth/forgot-password", ...)
+    try {
+      
 
-    setTimeout(() => {
+      
+      navigate("/reset", { replace: true });
+
+    } catch (err) {
+      console.error(err);
+    } finally {
       setLoading(false);
-      alert("Reset email/OTP UI done ✅ (connect API next)");
-    }, 600);
+    }
   }
 
   return (

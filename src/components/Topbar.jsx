@@ -2,7 +2,7 @@ export default function Topbar() {
   return (
     <div className="topbar px-3 px-md-4">
       <div className="d-flex align-items-center gap-2">
-        {/* Mobile menu button */}
+        
         <button
           className="btn btn-light d-md-none"
           data-bs-toggle="offcanvas"

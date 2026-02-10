@@ -1,12 +1,15 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import AuthLayout from "../components/AuthLayout";
-
 import signupImg from "../assets/signup.png";
+import api from "../api/axios";
 
 export default function Signup() {
+  const navigate = useNavigate();
+
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   function onChange(e) {
     setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
@@ -15,14 +18,32 @@ export default function Signup() {
   async function onSubmit(e) {
     e.preventDefault();
     setLoading(true);
+    setError("");
 
-    // TODO: call your backend API
-    // await fetch("/api/auth/signup", ...)
+    try {
+      
+      const res = await api.post("/auth/signup", form);
+      const data = res.data;
 
-    setTimeout(() => {
+      
+      if (data?.access_token) {
+        localStorage.setItem("token", data.access_token);
+        navigate("/dashboard", { replace: true });
+        return;
+      }
+
+     
+      navigate("/login", { replace: true });
+    } catch (err) {
+      setError(
+        err?.response?.data?.message ||
+          err?.response?.data?.detail ||
+          err?.message ||
+          "Signup failed"
+      );
+    } finally {
       setLoading(false);
-      alert("Signup UI done ✅ (connect API next)");
-    }, 700);
+    }
   }
 
   return (
@@ -78,6 +99,12 @@ export default function Signup() {
           <div className="form-text">Minimum 6 characters.</div>
         </div>
 
+        {error && (
+          <div className="alert alert-danger py-2 mt-3" role="alert">
+            {error}
+          </div>
+        )}
+
         <button className="btn btn-primary auth-btn w-100 mt-3" disabled={loading}>
           {loading ? "Creating..." : "Create account"}
         </button>
@@ -86,7 +113,10 @@ export default function Signup() {
           <span>or</span>
         </div>
 
-        <button type="button" className="btn btn-outline-dark w-100 auth-btn-outline">
+        <button
+          type="button"
+          className="btn btn-outline-dark w-100 auth-btn-outline"
+        >
           <i className="bi bi-google me-2"></i>
           Sign up with Google
         </button>

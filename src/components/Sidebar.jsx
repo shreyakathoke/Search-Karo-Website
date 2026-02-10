@@ -1,6 +1,8 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 
 export default function Sidebar() {
+  const navigate = useNavigate();
+
   const menu = [
     { icon: "bi-grid", label: "Dashboard", to: "/dashboard" },
     { icon: "bi-list-task", label: "Categories", to: "/categories" },
@@ -10,17 +12,21 @@ export default function Sidebar() {
     { icon: "bi-star", label: "Rating", to: "/rating" },
   ];
 
+  
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    navigate("/login", { replace: true });
+  };
+
   return (
     <>
-      {/* ================= Desktop Sidebar ================= */}
+      
       <aside className="sidebar d-none d-md-flex flex-column">
-        {/* Brand */}
         <div className="brand">
           <div className="brand-badge">V</div>
           <div className="brand-name text-white">Searchkro</div>
         </div>
 
-        {/* Menu */}
         <nav className="nav flex-column mt-3">
           {menu.map((m) => (
             <NavLink
@@ -37,24 +43,27 @@ export default function Sidebar() {
           ))}
         </nav>
 
-        {/* Logout */}
+        
         <div className="mt-auto sidebar-footer">
-          <button className="btn btn-outline-light w-100 logout-btn" type="button">
+          <button
+            className="btn btn-outline-light w-100 logout-btn"
+            type="button"
+            onClick={handleLogout}
+          >
             <i className="bi bi-box-arrow-right me-2" />
             Logout
           </button>
         </div>
       </aside>
 
-      {/* ================= Mobile Sidebar (Offcanvas) ================= */}
+      
       <div
         className="offcanvas offcanvas-start sidebar-offcanvas"
         tabIndex="-1"
         id="mobileSidebar"
-        aria-labelledby="mobileSidebarLabel"
       >
         <div className="offcanvas-header">
-          <div className="d-flex align-items-center gap-2" id="mobileSidebarLabel">
+          <div className="d-flex align-items-center gap-2">
             <div className="brand-badge">V</div>
             <div className="brand-name">Searchkro</div>
           </div>
@@ -63,7 +72,6 @@ export default function Sidebar() {
             type="button"
             className="btn-close btn-close-white"
             data-bs-dismiss="offcanvas"
-            aria-label="Close"
           />
         </div>
 
@@ -85,8 +93,13 @@ export default function Sidebar() {
             ))}
           </nav>
 
+          
           <div className="mt-auto pt-3">
-            <button className="btn btn-outline-light w-100 logout-btn" type="button">
+            <button
+              className="btn btn-outline-light w-100 logout-btn"
+              type="button"
+              onClick={handleLogout}
+            >
               <i className="bi bi-box-arrow-right me-2" />
               Logout
             </button>
