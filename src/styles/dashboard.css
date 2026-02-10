@@ -92,7 +92,7 @@ body { background: var(--bg); color: var(--text); }
 }
 
 .side-link.active{
-  background: rgba(17,197,217,.16);
+  background:rgb(6, 220, 235);
   color: #fff;
   outline: 1px solid rgba(17,197,217,.35);
   box-shadow: 0 10px 28px rgba(17,197,217,.10);
