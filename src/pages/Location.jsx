@@ -1,5 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "../styles/dashboard.css";
+
+const STORAGE_KEY = "location_rows_v1";
 
 const initialRows = [
   { id: 1, sno: 1, role: "Buyer", location: "London", region: "Europe", popular: "Positive" },
@@ -11,7 +13,24 @@ const initialRows = [
 ];
 
 export default function Location() {
-  const [rows, setRows] = useState(initialRows);
+  // ✅ Load from localStorage
+  const [rows, setRows] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return initialRows;
+  });
+
+  // ✅ Save to localStorage on change
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(rows));
+    } catch {}
+  }, [rows]);
+
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const [form, setForm] = useState({
     role: "Buyer",
@@ -36,39 +55,86 @@ export default function Location() {
     });
   };
 
+  // ✅ HARD CLEANUP (removes blur/backdrop)
+  const cleanupModalArtifacts = () => {
+    document.body.classList.remove("modal-open");
+    document.body.style.removeProperty("padding-right");
+    document.querySelectorAll(".modal-backdrop").forEach((b) => b.remove());
+
+    const modalEl = document.getElementById("addLocationModal");
+    if (modalEl) {
+      modalEl.classList.remove("show");
+      modalEl.style.display = "none";
+      modalEl.setAttribute("aria-hidden", "true");
+      modalEl.removeAttribute("aria-modal");
+      modalEl.removeAttribute("role");
+    }
+  };
+
+  // ✅ Close modal properly + cleanup
+  const closeModal = () => {
+    const modalEl = document.getElementById("addLocationModal");
+    if (modalEl && window.bootstrap?.Modal) {
+      const inst = window.bootstrap.Modal.getInstance(modalEl);
+      if (inst) inst.hide();
+      else window.bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+    }
+
+    // Always cleanup to avoid blur
+    cleanupModalArtifacts();
+  };
+
+  const showSuccess = (msg) => {
+    setSuccess(msg);
+    window.setTimeout(() => setSuccess(""), 3000);
+  };
+
   const addItem = (e) => {
+    // ✅ Prevent refresh / redirect
     e.preventDefault();
-    if (!form.location.trim() || !form.region.trim()) return;
+    e.stopPropagation();
+
+    setError("");
+    setSuccess("");
+
+    const loc = form.location.trim();
+    const reg = form.region.trim();
+
+    if (!loc || !reg) {
+      setError("Please fill Location and Region");
+      return;
+    }
 
     const newRow = {
       id: Date.now(),
       sno: nextSno,
       role: form.role,
-      location: form.location.trim(),
-      region: form.region.trim(),
+      location: loc,
+      region: reg,
       popular: form.popular,
     };
 
     setRows((prev) => [...prev, newRow]);
     resetForm();
 
-    // Close modal
-    const modalEl = document.getElementById("addLocationModal");
-    if (modalEl) {
-      const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
-      modal.hide();
-    }
+    closeModal(); // ✅ this prevents blur
+    showSuccess("Location added successfully ✅");
   };
+
+  // ✅ IMPORTANT: Cleanup on page unmount / route change
+  useEffect(() => {
+    return () => {
+      cleanupModalArtifacts();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="container-fluid px-4 py-3">
       {/* Header */}
       <div className="row align-items-center mb-3">
-        <div className="col">
-          
-        </div>
-
-        <div className="col-auto">
+        <div className="col" />
+        <div className="col-auto d-flex gap-2">
           <button
             className="btn btn-dark view-btn"
             data-bs-toggle="modal"
@@ -80,6 +146,10 @@ export default function Location() {
           </button>
         </div>
       </div>
+
+      {/* Alerts */}
+      {success && <div className="alert alert-success py-2">{success}</div>}
+      {error && <div className="alert alert-danger py-2">{error}</div>}
 
       {/* Card */}
       <div className="location-page-card">
@@ -113,9 +183,7 @@ export default function Location() {
                       }`}
                     >
                       {r.popular}{" "}
-                      <span className="pill-arrow">
-                        {r.popular === "Positive" ? "↑" : "↓"}
-                      </span>
+                      <span className="pill-arrow">{r.popular === "Positive" ? "↑" : "↓"}</span>
                     </span>
                   </td>
                 </tr>
@@ -148,17 +216,17 @@ export default function Location() {
                 Add Location
               </h5>
 
+              {/* ✅ ALSO cleanup when user closes by X */}
               <button
                 type="button"
                 className="btn-close"
                 data-bs-dismiss="modal"
-                aria-label="Close"
+                onClick={cleanupModalArtifacts}
               />
             </div>
 
-            <form onSubmit={addItem}>
+            <form onSubmit={addItem} noValidate>
               <div className="modal-body">
-                {/* Role */}
                 <div className="mb-3">
                   <label className="form-label fw-semibold">Role</label>
                   <select
@@ -172,7 +240,6 @@ export default function Location() {
                   </select>
                 </div>
 
-                {/* Location */}
                 <div className="mb-3">
                   <label className="form-label fw-semibold">Location</label>
                   <input
@@ -185,7 +252,6 @@ export default function Location() {
                   />
                 </div>
 
-                {/* Region */}
                 <div className="mb-3">
                   <label className="form-label fw-semibold">Region</label>
                   <input
@@ -198,7 +264,6 @@ export default function Location() {
                   />
                 </div>
 
-                {/* Popular */}
                 <div className="mb-2">
                   <label className="form-label fw-semibold">Popular</label>
                   <div className="d-flex gap-4">
@@ -230,9 +295,16 @@ export default function Location() {
               </div>
 
               <div className="modal-footer">
-                <button type="button" className="btn btn-light" data-bs-dismiss="modal">
+                {/* ✅ cleanup when Cancel */}
+                <button
+                  type="button"
+                  className="btn btn-light"
+                  data-bs-dismiss="modal"
+                  onClick={cleanupModalArtifacts}
+                >
                   Cancel
                 </button>
+
                 <button type="submit" className="btn btn-dark">
                   Save
                 </button>

@@ -1,5 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "../styles/dashboard.css";
+
+const STORAGE_KEY = "rating_rows_v1";
 
 const initialRows = [
   { id: 1, sno: 1, category: "Jeans", shop: "Clothes", stars: 4, review: "Positive" },
@@ -29,7 +31,24 @@ function Stars({ value = 0 }) {
 }
 
 export default function Rating() {
-  const [rows, setRows] = useState(initialRows);
+  // ✅ Load from localStorage first
+  const [rows, setRows] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return initialRows;
+  });
+
+  // ✅ Persist changes
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(rows));
+    } catch {}
+  }, [rows]);
+
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const [form, setForm] = useState({
     category: "",
@@ -54,38 +73,82 @@ export default function Rating() {
     });
   };
 
-  const addItem = (e) => {
-    e.preventDefault();
+  // ✅ HARD CLEANUP (removes blur/backdrop)
+  const cleanupModalArtifacts = () => {
+    document.body.classList.remove("modal-open");
+    document.body.style.removeProperty("padding-right");
+    document.querySelectorAll(".modal-backdrop").forEach((b) => b.remove());
 
-    if (!form.category.trim() || !form.shop.trim()) return;
+    const modalEl = document.getElementById("addRatingModal");
+    if (modalEl) {
+      modalEl.classList.remove("show");
+      modalEl.style.display = "none";
+      modalEl.setAttribute("aria-hidden", "true");
+      modalEl.removeAttribute("aria-modal");
+      modalEl.removeAttribute("role");
+    }
+  };
+
+  // ✅ Close modal properly + cleanup
+  const closeModal = () => {
+    const modalEl = document.getElementById("addRatingModal");
+    if (modalEl && window.bootstrap?.Modal) {
+      const inst = window.bootstrap.Modal.getInstance(modalEl);
+      if (inst) inst.hide();
+      else window.bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+    }
+    cleanupModalArtifacts();
+  };
+
+  const showSuccess = (msg) => {
+    setSuccess(msg);
+    window.setTimeout(() => setSuccess(""), 3000);
+  };
+
+  const addItem = (e) => {
+    // ✅ Prevent refresh / redirect
+    e.preventDefault();
+    e.stopPropagation();
+
+    setError("");
+    setSuccess("");
+
+    const cat = form.category.trim();
+    const shop = form.shop.trim();
+
+    if (!cat || !shop) {
+      setError("Please fill Category and Shop");
+      return;
+    }
 
     const newRow = {
       id: Date.now(),
       sno: nextSno,
-      category: form.category.trim(),
-      shop: form.shop.trim(),
+      category: cat,
+      shop: shop,
       stars: form.stars,
       review: form.review,
     };
 
     setRows((prev) => [...prev, newRow]);
     resetForm();
-
-    // close modal
-    const modalEl = document.getElementById("addRatingModal");
-    if (modalEl) {
-      const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
-      modal.hide();
-    }
+    closeModal();
+    showSuccess("Rating added successfully ✅");
   };
+
+  // ✅ Cleanup on route change/unmount
+  useEffect(() => {
+    return () => {
+      cleanupModalArtifacts();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="container-fluid px-4 py-3">
       {/* Header */}
       <div className="row align-items-center mb-3">
-        <div className="col">
-          
-        </div>
+        <div className="col"></div>
 
         <div className="col-auto">
           <button
@@ -99,6 +162,10 @@ export default function Rating() {
           </button>
         </div>
       </div>
+
+      {/* ✅ Alerts */}
+      {success && <div className="alert alert-success py-2">{success}</div>}
+      {error && <div className="alert alert-danger py-2">{error}</div>}
 
       {/* Card */}
       <div className="rating-page-card">
@@ -134,9 +201,7 @@ export default function Rating() {
                       }`}
                     >
                       {r.review}{" "}
-                      <span className="pill-arrow">
-                        {r.review === "Positive" ? "↑" : "↓"}
-                      </span>
+                      <span className="pill-arrow">{r.review === "Positive" ? "↑" : "↓"}</span>
                     </span>
                   </td>
                 </tr>
@@ -174,12 +239,12 @@ export default function Rating() {
                 className="btn-close"
                 data-bs-dismiss="modal"
                 aria-label="Close"
+                onClick={cleanupModalArtifacts}
               />
             </div>
 
-            <form onSubmit={addItem}>
+            <form onSubmit={addItem} noValidate>
               <div className="modal-body">
-                {/* Category */}
                 <div className="mb-3">
                   <label className="form-label fw-semibold">Category</label>
                   <input
@@ -192,7 +257,6 @@ export default function Rating() {
                   />
                 </div>
 
-                {/* Shop */}
                 <div className="mb-3">
                   <label className="form-label fw-semibold">Shop</label>
                   <input
@@ -205,15 +269,9 @@ export default function Rating() {
                   />
                 </div>
 
-                {/* Stars */}
                 <div className="mb-3">
                   <label className="form-label fw-semibold">Rating (Stars)</label>
-                  <select
-                    className="form-select"
-                    name="stars"
-                    value={form.stars}
-                    onChange={onChange}
-                  >
+                  <select className="form-select" name="stars" value={form.stars} onChange={onChange}>
                     <option value={5}>5 Stars</option>
                     <option value={4}>4 Stars</option>
                     <option value={3}>3 Stars</option>
@@ -222,7 +280,6 @@ export default function Rating() {
                   </select>
                 </div>
 
-                {/* Review */}
                 <div className="mb-2">
                   <label className="form-label fw-semibold">Review</label>
                   <div className="d-flex gap-4">
@@ -254,9 +311,15 @@ export default function Rating() {
               </div>
 
               <div className="modal-footer">
-                <button type="button" className="btn btn-light" data-bs-dismiss="modal">
+                <button
+                  type="button"
+                  className="btn btn-light"
+                  data-bs-dismiss="modal"
+                  onClick={cleanupModalArtifacts}
+                >
                   Cancel
                 </button>
+
                 <button type="submit" className="btn btn-dark">
                   Save
                 </button>

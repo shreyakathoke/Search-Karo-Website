@@ -23,7 +23,7 @@ export default function Sidebar() {
       
       <aside className="sidebar d-none d-md-flex flex-column">
         <div className="brand">
-          <div className="brand-badge bg-primary">V</div>
+          <div className="brand-badge ">V</div>
           <div className="brand-name text-white">Searchkro</div>
         </div>
 

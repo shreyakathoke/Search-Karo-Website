@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Modal } from "bootstrap";
 import "../styles/dashboard.css";
 import api from "../api/axios";
 
@@ -6,7 +7,9 @@ export default function Categories() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const [form, setForm] = useState({
     role: "Buyer",
@@ -15,61 +18,60 @@ export default function Categories() {
     popular: "Positive",
   });
 
-  
-  const [editId, setEditId] = useState(null);
-  const [editForm, setEditForm] = useState({
-    role: "Buyer",
-    category: "",
-    product: "",
-    popular: "Positive",
-  });
-
-  
-  useEffect(() => {
-    let mounted = true;
-
-    async function load() {
-      setLoading(true);
-      setError("");
-      try {
-        const res = await api.get("/categories");
-        if (!mounted) return;
-
-        const data = (res.data || []).map((item, idx) => ({
-          ...item,
-          id: item._id || item.id || idx + 1,
-          sno: idx + 1,
-        }));
-
-        setRows(data);
-      } catch (err) {
-        setError(
-          err?.response?.data?.error ||
-            err?.response?.data?.message ||
-            err?.message ||
-            "Failed to load categories"
-        );
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    }
-
-    load();
-    return () => {
-      mounted = false;
+  // --- helpers ---
+  const normalizeRow = (item, idx = 0) => {
+    const _id = item?._id ?? item?.id ?? null;
+    return {
+      ...item,
+      _id,
+      id: _id || item?.id || `tmp-${idx}-${Date.now()}`,
+      sno: idx + 1,
+      role: item?.role ?? "Buyer",
+      category: item?.category ?? item?.categories ?? "",
+      product: item?.product ?? "",
+      popular: item?.popular ?? item?.isPopular ?? "Positive",
     };
+  };
+
+  const showSuccess = (msg) => {
+    setSuccess(msg);
+    window.setTimeout(() => setSuccess(""), 3000);
+  };
+
+  const showError = (err, fallback = "Something went wrong") => {
+    const msg =
+      err?.response?.data?.error ||
+      err?.response?.data?.message ||
+      err?.message ||
+      fallback;
+    setError(msg);
+  };
+
+  const fetchCategories = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await api.get("/categories");
+      const list = Array.isArray(res.data) ? res.data : [];
+      setRows(list.map((item, idx) => normalizeRow(item, idx)));
+    } catch (err) {
+      showError(err, "Failed to load categories");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // LOAD
+  useEffect(() => {
+    fetchCategories();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const nextSno = useMemo(() => rows.length + 1, [rows.length]);
 
   const onChange = (e) => {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const onEditChange = (e) => {
-    const { name, value } = e.target;
-    setEditForm((prev) => ({ ...prev, [name]: value }));
+    setForm((p) => ({ ...p, [name]: value }));
   };
 
   const resetForm = () => {
@@ -81,117 +83,68 @@ export default function Categories() {
     });
   };
 
-  
+  // OPEN ADD MODAL
+  const openAddModal = () => {
+    resetForm();
+    setError("");
+    setSuccess("");
+
+    const modalEl = document.getElementById("addCategoryModal");
+    if (!modalEl) return;
+
+    Modal.getOrCreateInstance(modalEl).show();
+  };
+
+  // ADD ITEM
   const addItem = async (e) => {
     e.preventDefault();
     if (!form.category.trim() || !form.product.trim()) return;
 
     setSaving(true);
     setError("");
+    setSuccess("");
+
+    const payload = {
+      role: form.role,
+      category: form.category.trim(),
+      product: form.product.trim(),
+      popular: form.popular,
+    };
+
+    // ✅ optimistic row (so UI shows instantly)
+    const optimistic = {
+      ...payload,
+      id: `tmp-${Date.now()}`,
+      _id: null,
+      sno: nextSno,
+    };
+    setRows((prev) => [...prev, optimistic]);
 
     try {
-      const payload = {
-        role: form.role,
-        category: form.category.trim(),
-        product: form.product.trim(),
-        popular: form.popular,
-      };
-
       const res = await api.post("/categories", payload);
-      const created = res.data;
+      const created = res.data || payload;
 
-      const newRow = {
-        ...created,
-        id: created._id || Date.now(),
-        sno: nextSno,
-      };
-
-      setRows((prev) => [...prev, newRow]);
-      resetForm();
-
+      // close modal
       const modalEl = document.getElementById("addCategoryModal");
-      if (modalEl) {
-        const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
-        modal.hide();
-      }
+      if (modalEl) Modal.getOrCreateInstance(modalEl).hide();
+
+      resetForm();
+      showSuccess("Category added successfully ✅");
+
+      // ✅ re-fetch so UI = DB always (fixes “not shown” issues)
+      await fetchCategories();
     } catch (err) {
-      setError(
-        err?.response?.data?.error ||
-          err?.response?.data?.message ||
-          err?.message ||
-          "Failed to save category"
-      );
+      // rollback optimistic add if failed
+      setRows((prev) => prev.filter((r) => r.id !== optimistic.id));
+      showError(err, "Failed to save category");
     } finally {
       setSaving(false);
     }
   };
 
- 
-  const openEdit = (row) => {
-    setEditId(row._id || row.id);
-    setEditForm({
-      role: row.role || "Buyer",
-      category: row.category || "",
-      product: row.product || "",
-      popular: row.popular || "Positive",
-    });
-
-    const modalEl = document.getElementById("editCategoryModal");
-    if (modalEl) {
-      const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
-      modal.show();
-    }
-  };
-
-  
-  const updateItem = async (e) => {
-    e.preventDefault();
-    if (!editId) return;
-
-    setSaving(true);
-    setError("");
-
-    try {
-      const payload = {
-        role: editForm.role,
-        category: editForm.category.trim(),
-        product: editForm.product.trim(),
-        popular: editForm.popular,
-      };
-
-      const res = await api.put(`/categories/${editId}`, payload);
-      const updated = res.data;
-
-      setRows((prev) =>
-        prev.map((r) =>
-          (r._id || r.id) === editId
-            ? { ...r, ...updated } // keep sno
-            : r
-        )
-      );
-
-      const modalEl = document.getElementById("editCategoryModal");
-      if (modalEl) {
-        const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
-        modal.hide();
-      }
-
-      setEditId(null);
-    } catch (err) {
-      setError(
-        err?.response?.data?.error ||
-          err?.response?.data?.message ||
-          err?.message ||
-          "Failed to update category"
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // ✅ DELETE
+  // DELETE ITEM
   const deleteItem = async (row) => {
-    const id = row._id || row.id;
+    const id = row?._id || row?.id;
     if (!id) return;
 
     const ok = window.confirm("Delete this category?");
@@ -199,23 +152,24 @@ export default function Categories() {
 
     setSaving(true);
     setError("");
+    setSuccess("");
+
+    // optimistic remove
+    const backup = rows;
+    setRows((prev) =>
+      prev
+        .filter((r) => (r._id || r.id) !== id)
+        .map((r, idx) => ({ ...r, sno: idx + 1 }))
+    );
 
     try {
       await api.delete(`/categories/${id}`);
-
-      // Remove row and re-number S.No.
-      setRows((prev) =>
-        prev
-          .filter((r) => (r._id || r.id) !== id)
-          .map((r, idx) => ({ ...r, sno: idx + 1 }))
-      );
+      showSuccess("Category deleted successfully ✅");
+      await fetchCategories();
     } catch (err) {
-      setError(
-        err?.response?.data?.error ||
-          err?.response?.data?.message ||
-          err?.message ||
-          "Failed to delete category"
-      );
+      // rollback
+      setRows(backup);
+      showError(err, "Failed to delete category");
     } finally {
       setSaving(false);
     }
@@ -225,14 +179,12 @@ export default function Categories() {
     <div className="container-fluid px-4 py-3">
       {/* Header */}
       <div className="row align-items-center mb-3">
-        <div className="col"></div>
-
+        <div className="col" />
         <div className="col-auto">
           <button
             className="btn btn-dark view-btn"
-            data-bs-toggle="modal"
-            data-bs-target="#addCategoryModal"
             type="button"
+            onClick={openAddModal}
           >
             <i className="bi bi-plus-lg me-2" />
             Add
@@ -240,6 +192,8 @@ export default function Categories() {
         </div>
       </div>
 
+      {/* Alerts */}
+      {success && <div className="alert alert-success py-2">{success}</div>}
       {error && <div className="alert alert-danger py-2">{error}</div>}
 
       {/* Card */}
@@ -292,13 +246,6 @@ export default function Categories() {
                     <td>
                       <div className="d-flex gap-2">
                         <button
-                          className="btn btn-sm btn-outline-dark"
-                          onClick={() => openEdit(r)}
-                          type="button"
-                        >
-                          Edit
-                        </button>
-                        <button
                           className="btn btn-sm btn-outline-danger"
                           onClick={() => deleteItem(r)}
                           type="button"
@@ -339,6 +286,7 @@ export default function Categories() {
                 className="btn-close"
                 data-bs-dismiss="modal"
                 aria-label="Close"
+                disabled={saving}
               />
             </div>
 
@@ -393,6 +341,7 @@ export default function Categories() {
                       />
                       <label className="form-check-label">Positive</label>
                     </div>
+
                     <div className="form-check">
                       <input
                         className="form-check-input"
@@ -419,109 +368,6 @@ export default function Categories() {
                 </button>
                 <button type="submit" className="btn btn-dark" disabled={saving}>
                   {saving ? "Saving..." : "Save"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-
-      {/* EDIT MODAL */}
-      <div
-        className="modal fade"
-        id="editCategoryModal"
-        tabIndex="-1"
-        aria-hidden="true"
-      >
-        <div className="modal-dialog modal-dialog-centered">
-          <div className="modal-content modal-pro">
-            <div className="modal-header modal-pro-header">
-              
-              <button
-                type="button"
-                className="btn-close"
-                data-bs-dismiss="modal"
-                aria-label="Close"
-              />
-            </div>
-
-            <form onSubmit={updateItem}>
-              <div className="modal-body">
-                <div className="mb-3">
-                  <label className="form-label fw-semibold">Role</label>
-                  <select
-                    className="form-select"
-                    name="role"
-                    value={editForm.role}
-                    onChange={onEditChange}
-                  >
-                    <option value="Buyer">Buyer</option>
-                    <option value="Seller">Seller</option>
-                  </select>
-                </div>
-
-                <div classNameName="mb-3">
-                  <label className="form-label fw-semibold">Category</label>
-                  <input
-                    className="form-control"
-                    name="category"
-                    value={editForm.category}
-                    onChange={onEditChange}
-                    required
-                  />
-                </div>
-
-                <div className="mb-3">
-                  <label className="form-label fw-semibold">Product</label>
-                  <input
-                    className="form-control"
-                    name="product"
-                    value={editForm.product}
-                    onChange={onEditChange}
-                    required
-                  />
-                </div>
-
-                <div className="mb-2">
-                  <label className="form-label fw-semibold">Popular</label>
-                  <div className="d-flex gap-4">
-                    <div className="form-check">
-                      <input
-                        className="form-check-input"
-                        type="radio"
-                        name="popular"
-                        value="Positive"
-                        checked={editForm.popular === "Positive"}
-                        onChange={onEditChange}
-                      />
-                      <label className="form-check-label">Positive</label>
-                    </div>
-                    <div className="form-check">
-                      <input
-                        className="form-check-input"
-                        type="radio"
-                        name="popular"
-                        value="Negative"
-                        checked={editForm.popular === "Negative"}
-                        onChange={onEditChange}
-                      />
-                      <label className="form-check-label">Negative</label>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-light"
-                  data-bs-dismiss="modal"
-                  disabled={saving}
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-dark" disabled={saving}>
-                  {saving ? "Updating..." : "Update"}
                 </button>
               </div>
             </form>

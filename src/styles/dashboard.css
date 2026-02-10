@@ -55,8 +55,9 @@ body { background: var(--bg); color: var(--text); }
   width: 44px;
   height: 44px;
   border-radius: 14px;
-  background: rgba(17,197,217,.14);
+  background: #11c5d9;
   border: 1px solid rgba(17,197,217,.25);
+  border-radius: 50%;
   display:grid;
   place-items:center;
   font-weight:800;
