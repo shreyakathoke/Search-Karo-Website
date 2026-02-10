@@ -1,5 +1,11 @@
 import "../styles/dashboard.css";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+
+import LogoutModal from "../components/LogoutModal";
+
+
+
 
 function RatingDonut({ positive = 50 }) {
   const p = Math.max(0, Math.min(100, positive));
@@ -33,6 +39,7 @@ function CardHeader({ title, onView }) {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const [showLogout, setShowLogout] = useState(false);
 
   const categoriesData = [
     { sno: 1, role: "Buyer", category: "Clothes", product: "Jeans" },
@@ -46,11 +53,29 @@ export default function Dashboard() {
     { sno: 3, role: "Seller", city: "Berlin", region: "Europe" },
   ];
 
+  function handleLogout() {
+    // clear token
+    localStorage.removeItem("token");
+
+    // close modal
+    setShowLogout(false);
+
+    // go login
+    navigate("/login", { replace: true });
+  }
+
   return (
     <div className="container-fluid px-4 py-3">
       {/* Page Title */}
       <div className="d-flex align-items-center justify-content-between mb-3">
-        
+        <h4 className="m-0 fw-bold">Dashboard</h4>
+
+        <button
+          className="btn btn-outline-danger btn-sm"
+          onClick={() => setShowLogout(true)}
+        >
+          Logout
+        </button>
       </div>
 
       {/* Top Row */}
@@ -122,7 +147,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      
       <div className="row g-3 mt-1">
         {/* Legal Policy */}
         <div className="col-12 col-xl-5">
@@ -159,7 +183,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        
+        {/* Report */}
         <div className="col-12 col-xl-4">
           <div className="card soft-card h-100">
             <CardHeader title="Report" onView={() => navigate("/reports")} />
@@ -179,7 +203,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        
+        {/* Rating */}
         <div className="col-12 col-xl-3">
           <div className="card soft-card h-100">
             <CardHeader title="Rating" onView={() => navigate("/rating")} />
@@ -209,8 +233,15 @@ export default function Dashboard() {
         </div>
       </div>
 
-      
       <div className="bottom-accent mt-4" />
+
+      {/* ✅ Logout modal here */}
+      <LogoutModal
+        open={showLogout}
+        seconds={3}
+        onClose={() => setShowLogout(false)}
+        onConfirm={handleLogout}
+      />
     </div>
   );
 }

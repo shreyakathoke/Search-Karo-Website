@@ -1,7 +1,11 @@
 import { NavLink, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import LogoutModal from "../components/LogoutModal";
+import "../styles/dashboard.css";
 
 export default function Sidebar() {
   const navigate = useNavigate();
+  const [showLogout, setShowLogout] = useState(false);
 
   const menu = [
     { icon: "bi-grid", label: "Dashboard", to: "/dashboard" },
@@ -12,18 +16,21 @@ export default function Sidebar() {
     { icon: "bi-star", label: "Rating", to: "/rating" },
   ];
 
-  
   const handleLogout = () => {
+    setShowLogout(true);
+  };
+
+  const confirmLogout = () => {
     localStorage.removeItem("token");
+    setShowLogout(false);
     navigate("/login", { replace: true });
   };
 
   return (
     <>
-      
       <aside className="sidebar d-none d-md-flex flex-column">
         <div className="brand">
-          <div className="brand-badge ">V</div>
+          <div className="brand-badge">V</div>
           <div className="brand-name text-white">Searchkro</div>
         </div>
 
@@ -43,7 +50,6 @@ export default function Sidebar() {
           ))}
         </nav>
 
-        
         <div className="mt-auto sidebar-footer">
           <button
             className="btn btn-outline-light w-100 logout-btn"
@@ -56,7 +62,7 @@ export default function Sidebar() {
         </div>
       </aside>
 
-      
+      {/* Mobile Sidebar */}
       <div
         className="offcanvas offcanvas-start sidebar-offcanvas"
         tabIndex="-1"
@@ -93,7 +99,6 @@ export default function Sidebar() {
             ))}
           </nav>
 
-          
           <div className="mt-auto pt-3">
             <button
               className="btn btn-outline-light w-100 logout-btn"
@@ -106,6 +111,14 @@ export default function Sidebar() {
           </div>
         </div>
       </div>
+
+      {/* Logout Modal */}
+      <LogoutModal
+        open={showLogout}
+        seconds={3}
+        onClose={() => setShowLogout(false)}
+        onConfirm={confirmLogout}
+      />
     </>
   );
 }
