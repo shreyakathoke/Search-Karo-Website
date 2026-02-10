@@ -1,8 +1,9 @@
 import "../styles/dashboard.css";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import LogoutModal from "../components/LogoutModal";
+import api from "../api/axios";
 
 
 
@@ -41,11 +42,33 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [showLogout, setShowLogout] = useState(false);
 
-  const categoriesData = [
-    { sno: 1, role: "Buyer", category: "Clothes", product: "Jeans" },
-    { sno: 2, role: "Buyer", category: "Mobile", product: "iPhone" },
-    { sno: 3, role: "Seller", category: "Laptop", product: "Dell" },
-  ];
+  /* =========================
+     ✅ CATEGORY LOGIC (ONLY)
+  ========================== */
+  const [categoriesData, setCategoriesData] = useState([]);
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const res = await api.get("/categories");
+      const list = Array.isArray(res.data) ? res.data : [];
+
+      setCategoriesData(
+        list.slice(0, 3).map((item, index) => ({
+          sno: index + 1,
+          role: item.role,
+          category: item.category,
+          product: item.product,
+        }))
+      );
+    } catch (error) {
+      console.error("Failed to load categories", error);
+    }
+  };
+  /* ========================= */
 
   const locationData = [
     { sno: 1, role: "Buyer", city: "London", region: "Europe" },
@@ -54,13 +77,8 @@ export default function Dashboard() {
   ];
 
   function handleLogout() {
-    // clear token
     localStorage.removeItem("token");
-
-    // close modal
     setShowLogout(false);
-
-    // go login
     navigate("/login", { replace: true });
   }
 
@@ -147,6 +165,9 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* rest of the file unchanged */}
+
+      
       <div className="row g-3 mt-1">
         {/* Legal Policy */}
         <div className="col-12 col-xl-5">
@@ -233,9 +254,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="bottom-accent mt-4" />
-
-      {/* ✅ Logout modal here */}
       <LogoutModal
         open={showLogout}
         seconds={3}
