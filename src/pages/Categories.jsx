@@ -436,7 +436,7 @@ export default function Categories() {
         <div className="modal-dialog modal-dialog-centered">
           <div className="modal-content modal-pro">
             <div className="modal-header modal-pro-header">
-              <h5 className="modal-title fw-bold">Edit Category</h5>
+              
               <button
                 type="button"
                 className="btn-close"
