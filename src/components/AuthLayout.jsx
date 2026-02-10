@@ -1,41 +1,22 @@
+// components/AuthLayout.jsx
 import React from "react";
+import "../styles/auth.css";
 
-export default function AuthLayout({
-  title,
-  subtitle,
-  children,
-  imageSrc,
-  imageAlt = "Illustration",
-}) {
+export default function AuthLayout({ title, subtitle, imageSrc, imageAlt, children }) {
   return (
     <div className="auth-page">
-      <div className="container py-4 py-md-5">
-        <div className="row g-4 align-items-stretch auth-card">
-          {/* LEFT: Form */}
-          <div className="col-12 col-lg-6">
-            <div className="auth-panel h-100">
-              <div className="mb-3">
-                <div className="brand">
-                  <div className="brand-badge">
-                    <i className="bi bi-shield-lock"></i>
-                  </div>
-                  <span className="brand-name">SecureAuth</span>
-                </div>
-              </div>
+      <div className="auth-shell">
+        <div className="auth-left">
+          <img className="auth-illustration" src={imageSrc} alt={imageAlt || "Auth"} />
+        </div>
 
-              <h1 className="auth-title">{title}</h1>
-              {subtitle && <p className="auth-subtitle">{subtitle}</p>}
+        <div className="auth-right">
+          <h1 className="auth-title">{title}</h1>
 
-              <div className="mt-4">{children}</div>
-            </div>
-          </div>
+          {/* keep subtitle support if you need it later; it’s hidden by CSS to match screenshot */}
+          {subtitle ? <p className="auth-subtitle">{subtitle}</p> : null}
 
-          {/* RIGHT: Illustration */}
-          <div className="col-12 col-lg-6">
-            <div className="auth-illustration h-100">
-              <img src={imageSrc} alt={imageAlt} className="img-fluid" />
-            </div>
-          </div>
+          {children}
         </div>
       </div>
     </div>
